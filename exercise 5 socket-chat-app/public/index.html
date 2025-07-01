@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Socket.IO Chat</title>
+  <style>
+    body { font-family: sans-serif; margin: 20px; }
+    #chat { border: 1px solid #ccc; padding: 10px; height: 300px; overflow-y: scroll; }
+    #online { margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+  <h2>💬 Chat App with Socket.IO</h2>
+  <div id="online"></div>
+  <div id="chat"></div>
+  <input id="message" autocomplete="off" placeholder="Type your message..." /><button onclick="sendMessage()">Send</button>
+  <p id="typing"></p>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const chat = document.getElementById('chat');
+    const messageInput = document.getElementById('message');
+    const typingIndicator = document.getElementById('typing');
+    const onlineDiv = document.getElementById('online');
+
+    let nickname = prompt("Enter your nickname:");
+    socket.emit('setNickname', nickname);
+
+    function sendMessage() {
+      const message = messageInput.value;
+      appendMessage(`You: ${message}`);
+      socket.emit('chat-message', { message });
+      messageInput.value = '';
+    }
+
+    messageInput.addEventListener('keypress', () => {
+      socket.emit('typing');
+    });
+
+    function appendMessage(msg) {
+      const div = document.createElement('div');
+      div.textContent = msg;
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    socket.on('chat-message', data => {
+      appendMessage(`${data.nickname}: ${data.message}`);
+    });
+
+    socket.on('user-connected', name => {
+      appendMessage(`${name} connected`);
+    });
+
+    socket.on('user-disconnected', name => {
+      appendMessage(`${name} disconnected`);
+    });
+
+    socket.on('typing', name => {
+      typingIndicator.textContent = `${name} is typing...`;
+      setTimeout(() => { typingIndicator.textContent = ''; }, 1000);
+    });
+
+    socket.on('update-users', users => {
+      onlineDiv.textContent = "🟢 Online: " + users.join(', ');
+    });
+  </script>
+</body>
+</html>
